@@ -19,7 +19,6 @@ namespace HomeworkPlanner
             InitializeComponent();
             InitializeComponents();
             Homework.LoadAssignments();
-            Console.WriteLine(Homework.AssignmentList.Count);
             foreach (Assignment a in Homework.AssignmentList)
             {
                 AddAssignmentToList(a);

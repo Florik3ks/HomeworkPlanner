@@ -37,7 +37,6 @@ namespace HomeworkPlanner
         {
             string jsonString = JsonSerializer.Serialize(assignmentList);
             string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            Console.WriteLine(path + "homework.json");
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
@@ -57,9 +56,6 @@ namespace HomeworkPlanner
             {
                 pairs.Add(a.id, a);
             }
-            Console.WriteLine(assignmentList.Count);
-            Console.WriteLine(AssignmentList.Count);
-            Console.WriteLine("AssignmentList");
         }
     }
 
