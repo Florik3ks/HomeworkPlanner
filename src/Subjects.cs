@@ -158,7 +158,9 @@ namespace HomeworkPlanner
                     b.ForeColor = Color.Black;
                 }
                 b.BackColor = dialog.Color;
+                subjectColors[(string)b.Tag] = dialog.Color;
                 SaveSubjectColors();
+                Timetable.ShowPlan(Form1.timetablePanel);
             }
         }
     }

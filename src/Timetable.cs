@@ -27,6 +27,8 @@ namespace HomeworkPlanner
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
+            timetablePanel.Controls.Clear();
+            Console.WriteLine("a");
             for (int lesson = 0; lesson < timetable.GetLength(1); lesson++)
             {
                 for (int day = 0; day < timetable.GetLength(0); day++)
