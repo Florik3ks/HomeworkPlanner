@@ -11,6 +11,7 @@ namespace HomeworkPlanner
         Assignment currentlyEditing;
         public Form1()
         {
+            Subjects.LoadSubjectColors();
             InitializeComponent();
             InitializeComponents();
             Homework.LoadAssignments();
@@ -19,7 +20,6 @@ namespace HomeworkPlanner
                 AddAssignmentToList(a);
             }
             isEditing = false;
-            Subjects.LoadSubjectColors();
             Timetable.GetTimetable(timetablePanel);
         }
 

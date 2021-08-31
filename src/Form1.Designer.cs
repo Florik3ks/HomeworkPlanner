@@ -181,7 +181,7 @@ namespace HomeworkPlanner
             {
                 Button colorButton = new Button();
                 colorButton.Text = key;
-                colorButton.BackColor = Subjects.baseSubjectColors[key];
+                colorButton.BackColor = Subjects.GetColorBySubjectAcronym(key);
                 if (colorButton.BackColor.GetBrightness() < .33f)
                 {
                     colorButton.ForeColor = Color.White;
