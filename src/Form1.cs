@@ -1,17 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace HomeworkPlanner
 {
     public partial class Form1 : Form
     {
+        
         bool isEditing;
         Assignment currentlyEditing;
         public Form1()
@@ -24,12 +19,13 @@ namespace HomeworkPlanner
                 AddAssignmentToList(a);
             }
             isEditing = false;
-
+            Subjects.LoadSubjectColors();
+            Timetable.GetTimetable(timetablePanel);
         }
 
         public void SaveButtonPressed(object sender, EventArgs e)
         {
-            if (!isEditing)
+            if (!isEditing) // save new assignment
             {
                 Assignment a = new Assignment(
                     dateTimePicker.Value,
@@ -41,8 +37,11 @@ namespace HomeworkPlanner
 
                 ResetValues();
             }
-            else
+            else // edit currently selected assignment
             {
+                currentlyEditing.DueDate = dateTimePicker.Value;
+                currentlyEditing.Message = homeworkText.Text == "" ? homeworkText.PlaceholderText : homeworkText.Text;
+                currentlyEditing.Subject = subjectsBox.SelectedItem.ToString();
                 Homework.EditAssignment(currentlyEditing);
                 UpdateItem(currentlyEditing);
                 ResetValues();

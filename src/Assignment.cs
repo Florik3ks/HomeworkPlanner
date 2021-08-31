@@ -1,9 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace HomeworkPlanner{
     public class Assignment{

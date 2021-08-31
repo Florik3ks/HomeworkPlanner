@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace HomeworkPlanner
@@ -14,8 +12,11 @@ namespace HomeworkPlanner
         public DateTimePicker dateTimePicker;
         public ListView homeworkList;
         public ListView pastHomeworkList;
-        private int formBaseWidth = 800;
-        private int formBaseHeight = 450;
+        public static TableLayoutPanel timetablePanel;
+        public static TextBox username;
+        public static TextBox password;
+        private int formBaseWidth = (int)(800 * 1.5);
+        private int formBaseHeight = (int)(450 * 1.5);
         private string formName = "Hausaufgabenplaner";
         /// <summary>
         ///  Required designer variable.
@@ -83,32 +84,46 @@ namespace HomeworkPlanner
             dateTimePicker.Dock = DockStyle.Left;
             dateTimePicker.MinDate = DateTime.Now;
             dateTimePicker.Size = new Size(150, 50);
-
             dateTimePicker.CustomFormat = "dddd d.M";
             dateTimePicker.Format = DateTimePickerFormat.Custom;
-            // dateTimePicker.ShowUpDown = true;
 
 
             Button saveButton = new Button();
+            saveButton.FlatStyle = FlatStyle.Flat;
+            saveButton.FlatAppearance.BorderSize = 0;
             saveButton.Text = "Speichern";
             saveButton.Dock = DockStyle.Top;
-            saveButton.Size = new Size(80, 24);
+            saveButton.Size = new Size(80, 30);
             saveButton.Click += SaveButtonPressed;
+
 
             done = new Button();
             done.Dock = DockStyle.Top;
             done.Text = "Erledigt!";
+            done.Size = new Size(80, 30);
             done.Enabled = false;
             done.Click += OnDoneClick;
 
+
             Button clear = new Button();
+            clear.FlatStyle = FlatStyle.Flat;
+            clear.FlatAppearance.BorderSize = 0;
             clear.Text = "Neue Aufgabe";
             clear.Dock = DockStyle.Top;
+            clear.Size = new Size(80, 30);
             clear.Click += ResetValues;
 
-            splitContainer.Panel1.Controls.Add(clear);
-            splitContainer.Panel1.Controls.Add(done);
-            splitContainer.Panel1.Controls.Add(saveButton);
+
+            Panel p = new Panel();
+            p.Controls.Add(clear);
+            p.Controls.Add(done);
+            p.Controls.Add(saveButton);
+            p.BackColor = Color.LightGray;
+            p.Dock = DockStyle.Top;
+            p.Size = new Size(0, 90);
+            splitContainer.Panel1.Controls.Add(p);
+
+
             splitContainer.Panel1.Controls.Add(dateTimePicker);
             splitContainer.Panel1.Controls.Add(homeworkText);
             splitContainer.Panel1.Controls.Add(subjectsBox);
@@ -120,7 +135,7 @@ namespace HomeworkPlanner
             homeworkList.Scrollable = true;
             homeworkList.View = View.Details;
             homeworkList.Click += OnListSelected;
-            homeworkList.Columns.Add("Datum", 100, HorizontalAlignment.Center);
+            homeworkList.Columns.Add("Datum", 125, HorizontalAlignment.Center);
             homeworkList.Columns.Add("Erledigt", 100, HorizontalAlignment.Center);
             homeworkList.Columns.Add("Fach", 100, HorizontalAlignment.Center);
             homeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Center);
@@ -131,6 +146,7 @@ namespace HomeworkPlanner
 
             splitContainer.Panel2.Controls.Add(homeworkList);
 
+
             pastHomeworkList = new ListView();
             pastHomeworkList.BackColor = Color.LightGray;
             pastHomeworkList.Dock = DockStyle.Bottom;
@@ -138,19 +154,92 @@ namespace HomeworkPlanner
             pastHomeworkList.Scrollable = true;
             pastHomeworkList.View = View.Details;
             // pastHomeworkList.Click += OnListSelected;
-            pastHomeworkList.Columns.Add("Datum", 100, HorizontalAlignment.Center);
+            pastHomeworkList.Columns.Add("Datum", 125, HorizontalAlignment.Center);
             pastHomeworkList.Columns.Add("Erledigt", 100, HorizontalAlignment.Center);
             pastHomeworkList.Columns.Add("Fach", 100, HorizontalAlignment.Center);
             pastHomeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Center);
             pastHomeworkList.LabelEdit = false;
             pastHomeworkList.LabelWrap = true;
             pastHomeworkList.FullRowSelect = true;
+
+
             ListSorter ls = new ListSorter();
             ls.reverse = true;
             pastHomeworkList.ListViewItemSorter = ls;
             splitContainer.Panel2.Controls.Add(pastHomeworkList);
+            TabPage tp1 = new TabPage();
+            tp1.Text = "Hausaufgaben";
+            tp1.Controls.Add(splitContainer);
+            TabPage tp2 = new TabPage();
+            tp2.Text = "Einstellungen";
 
-            Controls.Add(splitContainer);
+            Panel p2 = new Panel();
+            p2.Dock = DockStyle.Left;
+            p2.Width = 100;
+            p2.Height = Subjects.baseSubjectColors.Keys.Count * 30;
+            foreach (string key in Subjects.baseSubjectColors.Keys)
+            {
+                Button colorButton = new Button();
+                colorButton.Text = key;
+                colorButton.BackColor = Subjects.baseSubjectColors[key];
+                if (colorButton.BackColor.GetBrightness() < .33f)
+                {
+                    colorButton.ForeColor = Color.White;
+                }
+                colorButton.FlatStyle = FlatStyle.Flat;
+                colorButton.FlatAppearance.BorderSize = 0;
+                colorButton.Tag = key;
+                colorButton.Height = 30;
+                colorButton.Click += Subjects.ColorButtonClick;
+                colorButton.Dock = DockStyle.Top;
+                p2.Controls.Add(colorButton);
+            }
+
+            Panel p3 = new Panel();
+            p3.Dock = DockStyle.Left;
+            p3.Width = 300;
+            p3.Height = 150;
+
+            username = new TextBox();
+            username.Dock = DockStyle.Top;
+            username.PlaceholderText = "Portal Nutzername";
+            username.Height = 50;
+
+            password = new TextBox();
+            password.Dock = DockStyle.Top;
+            password.PlaceholderText = "Portal Passwort";
+            password.Height = 50;
+            password.UseSystemPasswordChar = true;
+
+            Button portalSubmitButton = new Button();
+            portalSubmitButton.Dock = DockStyle.Top;
+            portalSubmitButton.FlatStyle = FlatStyle.Flat;
+            portalSubmitButton.Text = "Stundenplan speichern / aktualisieren";
+            portalSubmitButton.FlatAppearance.BorderSize = 1;
+            portalSubmitButton.Height = 50;
+            portalSubmitButton.Click += Timetable.OnLoginCredentialsSubmitButtonClick;
+
+            p3.Controls.Add(portalSubmitButton);
+            p3.Controls.Add(password);
+            p3.Controls.Add(username);
+
+
+            tp2.Controls.Add(p3);
+            tp2.Controls.Add(p2);
+
+            timetablePanel = new TableLayoutPanel();
+            timetablePanel.ColumnCount = Timetable.timetableWidth;
+            timetablePanel.RowCount = Timetable.timetableHeight;
+            timetablePanel.Dock = DockStyle.Bottom;
+            timetablePanel.Height = 325;
+            splitContainer.Panel1.Controls.Add(timetablePanel);
+
+            // tp2.Controls.Add(timeTablePanel);
+            TabControl tabControl = new TabControl();
+            tabControl.Dock = DockStyle.Fill;
+            tabControl.Controls.Add(tp1);
+            tabControl.Controls.Add(tp2);
+            Controls.Add(tabControl);
         }
     }
 }
