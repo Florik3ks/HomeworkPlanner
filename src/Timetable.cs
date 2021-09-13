@@ -11,17 +11,52 @@ namespace HomeworkPlanner
         public const int timetableBaseHeight = 11;
         public const int timetableBaseWidth = 5;
         public static string[,] timetable;
-        public static void GetTimetable(TableLayoutPanel timetablePanel)
+        private static bool hasTimetableChangedSinceRedraw = false;
+        public enum loadingType
         {
-            LoadPlan(true, false, Config.portalUsername, Config.portalPassword);
+            reloadFromPortal, loadFromFile
+        };
+        public static void GetTimetable(TableLayoutPanel timetablePanel, bool loadFromPortal = false)
+        {
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
+            if (loadFromPortal || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"]))
+            {
+                LoadPlan(loadingType.reloadFromPortal, false, Config.portalUsername, Config.portalPassword);
+            }
+            else
+            {
+                LoadPlan(loadingType.loadFromFile, false, Config.portalUsername, Config.portalPassword);
+            }
             ShowPlan(timetablePanel);
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
-            timetablePanel.Controls.Clear();
-            timetablePanel.RowCount = timetable.GetLength(1);
-            timetablePanel.ColumnCount = timetable.GetLength(0);
-            if (timetablePanel.ColumnCount > 0 && Config.showTimetableLessonTimes) timetablePanel.ColumnCount++;
+            if (!hasTimetableChangedSinceRedraw)
+            {
+                Console.WriteLine("no");
+                return;
+            }
+            hasTimetableChangedSinceRedraw = false;
+            if (timetablePanel.InvokeRequired)
+            {
+                // we aren't on the UI thread. Ask the UI thread to do stuff.
+                timetablePanel.Invoke(new Action(() =>
+                {
+                    timetablePanel.Controls.Clear();
+                    timetablePanel.RowCount = timetable.GetLength(1);
+                    timetablePanel.ColumnCount = timetable.GetLength(0);
+                    if (timetablePanel.ColumnCount > 0 && Config.showTimetableLessonTimes) timetablePanel.ColumnCount++;
+                }));
+            }
+            else
+            {
+                // we are on the UI thread. We are free to touch things.
+                timetablePanel.Controls.Clear();
+                timetablePanel.RowCount = timetable.GetLength(1);
+                timetablePanel.ColumnCount = timetable.GetLength(0);
+                if (timetablePanel.ColumnCount > 0 && Config.showTimetableLessonTimes) timetablePanel.ColumnCount++;
+            }
+
 
             for (int lesson = 0; lesson < timetable.GetLength(1); lesson++)
             {
@@ -74,7 +109,7 @@ namespace HomeworkPlanner
                         if (timetablePanel.InvokeRequired)
                         {
                             // we aren't on the UI thread. Ask the UI thread to do stuff.
-                            timetablePanel.Invoke(new Action(() => AddLabelToTTPanel(label)));
+                            timetablePanel.Invoke(new Action(() => Form1.timetablePanel.Controls.Add(label)));
                         }
                         else
                         {
@@ -84,10 +119,6 @@ namespace HomeworkPlanner
                     }
                 }
             }
-        }
-        public static void AddLabelToTTPanel(Label label)
-        {
-            Form1.timetablePanel.Controls.Add(label);
         }
         public static void ResizeLabels(TableLayoutPanel timetablePanel)
         {
@@ -157,7 +188,7 @@ namespace HomeworkPlanner
         {
 
             Portal.HasPortalLoginDetails = true;
-            bool result = LoadPlan(true, true, Form1.username.Text, Form1.password.Text);
+            bool result = LoadPlan(loadingType.reloadFromPortal, true, Form1.username.Text, Form1.password.Text);
             ShowPlan(Form1.timetablePanel);
             ResizeLabels(Form1.timetablePanel);
             if (result && timetable.Length > 0)
@@ -168,14 +199,32 @@ namespace HomeworkPlanner
                 Config.SaveConfig();
             }
         }
-        public static bool LoadPlan(bool reload, bool showMessages = false, string username = "", string password = "")
+        public static bool AreTTEqual(string[,] timetable, string[,] otherTimetable)
         {
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
-            if (reload || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"]))
+            // TimetableDummyClass tt = new TimetableDummyClass(timetable);
+            // TimetableDummyClass otherTt = new TimetableDummyClass(otherTimetable);
+            // return JsonSerializer.Serialize(tt) == JsonSerializer.Serialize(otherTt);
+            if(timetable == null || otherTimetable == null) return false;
+            if (timetable.GetLength(0) != otherTimetable.GetLength(0) || timetable.GetLength(1) != otherTimetable.GetLength(1)) return false;
+            for (int x = 0; x < timetable.GetLength(0); x++)
+            {
+                for (int y = 0; y < timetable.GetLength(1); y++)
+                {
+                    if (timetable[x, y] != otherTimetable[x, y]) return false;
+                }
+            }
+            return true;
+        }
+        public static bool LoadPlan(loadingType lt = loadingType.loadFromFile, bool showMessages = false, string username = "", string password = "")
+        {
+            string[,] tt;
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
+            if (lt == loadingType.reloadFromPortal /*|| !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"])*/)
             {
                 if (Portal.HasPortalLoginDetails)
                 {
-                    string[,] tt = Portal.GetPlan(username, password, showMessages);
+                    tt = Portal.GetPlan(username, password, showMessages);
+                    if (!AreTTEqual(tt, timetable)) hasTimetableChangedSinceRedraw = true;
                     if (tt.Length > 0)
                     {
                         timetable = tt;
@@ -196,7 +245,9 @@ namespace HomeworkPlanner
             //  jsonString = File.ReadAllText(path + FileManager.fileNames["Timetable"]);
             // TODO:
             TimetableDummyClass tbc = JsonSerializer.Deserialize<TimetableDummyClass>(jsonString);
-            timetable = tbc.GetNormalTimetable();
+            tt = tbc.GetNormalTimetable();
+            if (!AreTTEqual(tt, timetable)) hasTimetableChangedSinceRedraw = true;
+            timetable = tt;
             return true;
         }
         public static void SavePlan()

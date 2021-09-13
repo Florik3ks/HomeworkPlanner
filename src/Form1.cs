@@ -22,12 +22,17 @@ namespace HomeworkPlanner
         private void OnShown(object sender, EventArgs e)
         {
             Config.LoadConfig();
+            // get local timetable on startup
+            Timetable.GetTimetable(timetablePanel, false);
+            TimetableResize(null, null);
+            // load assignments
             Homework.LoadAssignments();
             for (int i = Homework.AssignmentList.Count - 1; i >= 0; i--)
             {
                 AddAssignmentToList(Homework.AssignmentList[i], false);
             }
             Refresh();
+            // update timetable from portal
             BackgroundWorker bgw = new BackgroundWorker();
             bgw.DoWork += LoadTimetable;
             bgw.RunWorkerCompleted += LoadTimetableCompleted;
@@ -36,7 +41,7 @@ namespace HomeworkPlanner
         private void LoadTimetable(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
-            Timetable.GetTimetable(timetablePanel);
+            Timetable.GetTimetable(timetablePanel, true);
         }
         private void LoadTimetableCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
