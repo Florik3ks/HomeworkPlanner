@@ -31,7 +31,7 @@ namespace HomeworkPlanner
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
-            if(timetable == null) return;
+            if (timetable == null) return;
             if (!hasTimetableChangedSinceRedraw)
             {
                 Console.WriteLine("no");
@@ -134,7 +134,7 @@ namespace HomeworkPlanner
             int day, lesson, hour, minutes;
             Label l = (Label)sender;
             (day, lesson) = ((int, int))l.Tag;
-            string acronym = Timetable.timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
+            string acronym = timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
             if (acronym == "-") { return; }
             string subject = Subjects.GetSubjectByAcronym(acronym);
             (hour, minutes) = Subjects.GetLessonStartTime(lesson);
@@ -205,7 +205,7 @@ namespace HomeworkPlanner
             // TimetableDummyClass tt = new TimetableDummyClass(timetable);
             // TimetableDummyClass otherTt = new TimetableDummyClass(otherTimetable);
             // return JsonSerializer.Serialize(tt) == JsonSerializer.Serialize(otherTt);
-            if(timetable == null || otherTimetable == null) return false;
+            if (timetable == null || otherTimetable == null) return false;
             if (timetable.GetLength(0) != otherTimetable.GetLength(0) || timetable.GetLength(1) != otherTimetable.GetLength(1)) return false;
             for (int x = 0; x < timetable.GetLength(0); x++)
             {
@@ -234,7 +234,11 @@ namespace HomeworkPlanner
                     }
                     return false;
                 }
-                timetable = new string[0, 0];
+                // dont overwrite existing timetable if no portal credentials are saved but a timetable.json is available
+                if (timetable == null)
+                {
+                    timetable = new string[0, 0];
+                }
                 return false;
             }
             string jsonString = FileManager.LoadData(FileManager.fileNames["Timetable"]);
@@ -243,8 +247,6 @@ namespace HomeworkPlanner
                 timetable = new string[0, 0];
                 return false;
             }
-            //  jsonString = File.ReadAllText(path + FileManager.fileNames["Timetable"]);
-            // TODO:
             TimetableDummyClass tbc = JsonSerializer.Deserialize<TimetableDummyClass>(jsonString);
             tt = tbc.GetNormalTimetable();
             if (!AreTTEqual(tt, timetable)) hasTimetableChangedSinceRedraw = true;

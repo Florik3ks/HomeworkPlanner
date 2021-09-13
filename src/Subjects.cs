@@ -154,7 +154,7 @@ namespace HomeworkPlanner
             {
                 return subjectColors[acronym.ToUpper()];
             }
-            return subjectColors["Freistunde"];
+            return Color.White;
         }
         public static string GetSubjectByAcronym(string acronym)
         {
