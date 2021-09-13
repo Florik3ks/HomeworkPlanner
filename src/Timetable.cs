@@ -79,6 +79,7 @@ namespace HomeworkPlanner
                         label.Tag = (day, lesson);
                         label.Click += SetValuesFromLabel;
                         string subject = timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
+                        subject = (subject != "-") ? subject : "FREISTUNDE";
                         label.BackColor = Subjects.GetColorBySubjectAcronym(subject);
                         if (label.BackColor.GetBrightness() < .33f)
                         {
@@ -92,7 +93,7 @@ namespace HomeworkPlanner
                     }
                     else if (Config.showTimetableLessonTimes)
                     {
-                        label.BackColor = Subjects.GetColorBySubjectAcronym("Freistunde");
+                        label.BackColor = Subjects.GetColorBySubjectAcronym("FREISTUNDE");
                         label.Tag = (-1, -1);
                         label.Width = timetablePanel.Width / timetablePanel.ColumnCount;
                         int hour, minutes;

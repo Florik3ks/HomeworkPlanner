@@ -53,7 +53,8 @@ namespace HomeworkPlanner
             {"RELRK", "k. Religion"},
             {"RELEV", "ev. Religion"},
             {"ETH", "Ethik"},
-            {"PHIL", "Philosophie"}
+            {"PHIL", "Philosophie"},
+            {"FREISTUNDE","Freistunde"}
         };
         public static Dictionary<string, Color> baseSubjectColors { get; private set; } = new Dictionary<string, Color>{
             {"INF", Color.GreenYellow},
@@ -76,7 +77,7 @@ namespace HomeworkPlanner
             {"RELEV", Color.Lavender},
             {"ETH", Color.Lavender},
             {"PHIL", Color.SlateGray},
-            {"Freistunde", Color.White}
+            {"FREISTUNDE", Color.White}
         };
         private static Dictionary<int, ((int, int), (int, int))> lessonStartTimes = new Dictionary<int, ((int, int), (int, int))>(){
             {01 , ((08, 00), (08, 45))},
@@ -121,7 +122,7 @@ namespace HomeworkPlanner
             Dictionary<string, DummyColorClass> dummyDict = JsonSerializer.Deserialize<Dictionary<string, DummyColorClass>>(jsonString);
             foreach (var key in dummyDict.Keys)
             {
-                subjectColors[key] = dummyDict[key].GetColor();
+                subjectColors[key.ToUpper()] = dummyDict[key].GetColor();
             }
             // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
             // if (!File.Exists(path + "colors.json"))
