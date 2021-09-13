@@ -21,9 +21,6 @@ namespace HomeworkPlanner{
         public Assignment(){
 
         }
-        // [JsonConstructor]
-        // public Assignment(string id, DateTime DueDate, string Subject, string Message, bool Done) =>
-        //     (this.id, dueDate, subject, message, done) = (id, DueDate, Subject, Message, Done);
     
         public void SetDone(){
             done = true;

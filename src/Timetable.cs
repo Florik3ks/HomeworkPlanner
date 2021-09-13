@@ -1,57 +1,145 @@
 using System;
-using System.IO;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Http;
+using System.IO;
 using System.Text.Json;
-using HtmlAgilityPack;
 using System.Windows.Forms;
 
 namespace HomeworkPlanner
 {
     public static class Timetable
     {
-        public const int timetableHeight = 11;
-        public const int timetableWidth = 5;
+        public const int timetableBaseHeight = 11;
+        public const int timetableBaseWidth = 5;
         public static string[,] timetable;
         public static void GetTimetable(TableLayoutPanel timetablePanel)
         {
-            LoadPlan();
+            LoadPlan(true, false, Config.portalUsername, Config.portalPassword);
             ShowPlan(timetablePanel);
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
             timetablePanel.Controls.Clear();
-            Console.WriteLine("a");
+            timetablePanel.RowCount = timetable.GetLength(1);
+            timetablePanel.ColumnCount = timetable.GetLength(0);
+            if (timetablePanel.ColumnCount > 0 && Config.showTimetableLessonTimes) timetablePanel.ColumnCount++;
+
             for (int lesson = 0; lesson < timetable.GetLength(1); lesson++)
             {
-                for (int day = 0; day < timetable.GetLength(0); day++)
+                for (int day = -1; day < timetable.GetLength(0); day++)
                 {
                     Label label = new Label();
-                    label.Margin = new Padding(0);
                     label.Dock = DockStyle.Left;
-                    label.BorderStyle = BorderStyle.FixedSingle;
-                    label.Height = (int)(label.Height * 1.275);
-                    label.Width = (int)(label.Height * 2.75);
                     label.FlatStyle = FlatStyle.Popup;
+                    label.Margin = new Padding(0);
+
+                    // label.BorderStyle = BorderStyle.FixedSingle;
+                    // label.Height = (int)(label.Height * 1.275);
+                    // label.Width = (int)(label.Height * 2.75);
+                    label.Height = timetablePanel.Height / timetablePanel.RowCount;
                     label.TextAlign = ContentAlignment.MiddleCenter;
-                    label.Tag = (day, lesson);
-                    string subject = timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
-                    label.BackColor = Subjects.GetColorBySubjectAcronym(subject);
-                    if (!(timetable[day, lesson] == "-"))
+                    if (day > -1)
                     {
-                        label.Text = subject;
-                        label.MouseHover += OnTimeTableLessonHover;
+                        label.Width = timetablePanel.Width / timetablePanel.ColumnCount * 2;
+                        label.Tag = (day, lesson);
+                        label.Click += SetValuesFromLabel;
+                        string subject = timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
+                        label.BackColor = Subjects.GetColorBySubjectAcronym(subject);
+                        if (label.BackColor.GetBrightness() < .33f)
+                        {
+                            label.ForeColor = Color.White;
+                        }
+                        if (!(timetable[day, lesson] == "-"))
+                        {
+                            label.Text = subject;
+                            label.MouseHover += OnTimeTableLessonHover;
+                        }
                     }
-                    timetablePanel.Controls.Add(label);
+                    else if (Config.showTimetableLessonTimes)
+                    {
+                        label.BackColor = Subjects.GetColorBySubjectAcronym("Freistunde");
+                        label.Tag = (-1, -1);
+                        label.Width = timetablePanel.Width / timetablePanel.ColumnCount;
+                        int hour, minutes;
+                        (hour, minutes) = Subjects.GetLessonStartTime(lesson + 1);
+                        string h, m;
+                        h = hour.ToString().PadLeft(2, '0');
+                        m = minutes.ToString().PadLeft(2, '0');
+                        // h2 = hour2.ToString().PadLeft(2, '0');
+                        // m2 = minutes2.ToString().PadLeft(2, '0');
+                        label.Text = $"{h}:{m}";
+                    }
+
+                    if (Config.showTimetableLessonTimes || day > -1)
+                    {
+                        if (timetablePanel.InvokeRequired)
+                        {
+                            // we aren't on the UI thread. Ask the UI thread to do stuff.
+                            timetablePanel.Invoke(new Action(() => AddLabelToTTPanel(label)));
+                        }
+                        else
+                        {
+                            // we are on the UI thread. We are free to touch things.
+                            timetablePanel.Controls.Add(label);
+                        }
+                    }
                 }
             }
+        }
+        public static void AddLabelToTTPanel(Label label)
+        {
+            Form1.timetablePanel.Controls.Add(label);
+        }
+        public static void ResizeLabels(TableLayoutPanel timetablePanel)
+        {
+            for (int i = 0; i < timetablePanel.Controls.Count; i++)
+            {
+                timetablePanel.Controls[i].Height = timetablePanel.Height / timetablePanel.RowCount;
+                timetablePanel.Controls[i].Width = timetablePanel.Width / timetablePanel.ColumnCount;
+            }
+        }
+        public static void SetValuesFromLabel(object sender, EventArgs e)
+        {
+            int day, lesson, hour, minutes;
+            Label l = (Label)sender;
+            (day, lesson) = ((int, int))l.Tag;
+            string acronym = Timetable.timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
+            if (acronym == "-") { return; }
+            string subject = Subjects.GetSubjectByAcronym(acronym);
+            (hour, minutes) = Subjects.GetLessonStartTime(lesson);
+
+            DayOfWeek dayOfWeek = DayOfWeek.Monday;
+            switch (day)
+            {
+                case 0:
+                    dayOfWeek = DayOfWeek.Monday;
+                    break;
+                case 1:
+                    dayOfWeek = DayOfWeek.Tuesday;
+                    break;
+                case 2:
+                    dayOfWeek = DayOfWeek.Wednesday;
+                    break;
+                case 3:
+                    dayOfWeek = DayOfWeek.Thursday;
+                    break;
+                case 4:
+                    dayOfWeek = DayOfWeek.Friday;
+                    break;
+                case 5:
+                    dayOfWeek = DayOfWeek.Saturday;
+                    break;
+                case 6:
+                    dayOfWeek = DayOfWeek.Sunday;
+                    break;
+            }
+            DateTime duedate = new DateTime(DateTime.Today.AddDays(1).Year, DateTime.Today.AddDays(1).Month, DateTime.Today.AddDays(1).Day, hour, minutes, 0);
+            duedate = GetNextWeekday(duedate, dayOfWeek);
+            Form1.SetValues(duedate, subject);
+        }
+        public static DateTime GetNextWeekday(DateTime start, DayOfWeek day)
+        {
+            int daysToAdd = ((int)day - (int)start.DayOfWeek + 7) % 7;
+            return start.AddDays(daysToAdd);
         }
         public static void OnTimeTableLessonHover(object sender, EventArgs e)
         {
@@ -65,55 +153,73 @@ namespace HomeworkPlanner
             toolTip.SetToolTip(label, String.Join("_", baseText));
         }
 
-        public static void OnLoginCredentialsSubmitButtonClick(object sender, EventArgs e){
+        public static void OnLoginCredentialsSubmitButtonClick(object sender, EventArgs e)
+        {
 
             Portal.HasPortalLoginDetails = true;
-            LoadPlan(true, Form1.username.Text, Form1.password.Text);
+            bool result = LoadPlan(true, true, Form1.username.Text, Form1.password.Text);
             ShowPlan(Form1.timetablePanel);
-            if(timetable.Length > 0){
+            ResizeLabels(Form1.timetablePanel);
+            if (result && timetable.Length > 0)
+            {
                 MessageBox.Show("Stundenplan erfolgreich geladen!");
+                Config.portalUsername = Form1.username.Text;
+                Config.portalPassword = Form1.password.Text;
+                Config.SaveConfig();
             }
         }
-        public static void LoadPlan(bool reloadFromPortal = false, string username = "", string password = "")
+        public static bool LoadPlan(bool reload, bool showMessages = false, string username = "", string password = "")
         {
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (reloadFromPortal || !File.Exists(path + "timetable.json"))
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
+            if (reload || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"]))
             {
                 if (Portal.HasPortalLoginDetails)
                 {
-                    timetable = Portal.GetPlan(username, password);
-                    if (timetable.Length > 0)
+                    string[,] tt = Portal.GetPlan(username, password, showMessages);
+                    if (tt.Length > 0)
                     {
+                        timetable = tt;
                         SavePlan();
+                        return true;
                     }
-                    return;
+                    return false;
                 }
                 timetable = new string[0, 0];
-                return;
+                return false;
             }
-            string jsonString = File.ReadAllText(path + "timetable.json");
+            string jsonString = FileManager.LoadData(FileManager.fileNames["Timetable"]);
+            if (jsonString == null)
+            {
+                timetable = new string[0, 0];
+                return false;
+            }
+            //  jsonString = File.ReadAllText(path + FileManager.fileNames["Timetable"]);
+            // TODO:
             TimetableDummyClass tbc = JsonSerializer.Deserialize<TimetableDummyClass>(jsonString);
             timetable = tbc.GetNormalTimetable();
+            return true;
         }
         public static void SavePlan()
         {
             TimetableDummyClass tdc = new TimetableDummyClass(timetable);
-
-            string jsonString = JsonSerializer.Serialize(tdc);
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-            File.WriteAllText(path + "timetable.json", jsonString);
+            FileManager.SaveData(tdc, FileManager.fileNames["Timetable"]);
+            // string jsonString = JsonSerializer.Serialize(tdc);
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
+            // if (!Directory.Exists(path))
+            // {
+            //     Directory.CreateDirectory(path);
+            // }
+            // File.WriteAllText(path + "timetable.json", jsonString);
         }
     }
-    public class TimetableDummyClass{
-        public int Height{ get; set; }
-        public int Width{ get; set; }
-        public string[] Values{ get; set; }
-        public TimetableDummyClass(){}
-        public TimetableDummyClass(string[,] normalTimetable){
+    public class TimetableDummyClass
+    {
+        public int Height { get; set; }
+        public int Width { get; set; }
+        public string[] Values { get; set; }
+        public TimetableDummyClass() { }
+        public TimetableDummyClass(string[,] normalTimetable)
+        {
             Height = normalTimetable.GetLength(1);
             Width = normalTimetable.GetLength(0);
             Values = new string[Height * Width];
@@ -122,19 +228,20 @@ namespace HomeworkPlanner
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    Values[i] = normalTimetable[x,y];
+                    Values[i] = normalTimetable[x, y];
                     i++;
                 }
             }
         }
-        public string[,] GetNormalTimetable(){
+        public string[,] GetNormalTimetable()
+        {
             string[,] normal = new string[Width, Height];
             int i = 0;
             for (int y = 0; y < Height; y++)
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    normal[x,y] = Values[i];
+                    normal[x, y] = Values[i];
                     i++;
                 }
             }

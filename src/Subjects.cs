@@ -76,33 +76,77 @@ namespace HomeworkPlanner
             {"RELEV", Color.Lavender},
             {"ETH", Color.Lavender},
             {"PHIL", Color.SlateGray},
-            {"NO_SUBJECT", Color.White}
+            {"Freistunde", Color.White}
         };
+        private static Dictionary<int, ((int, int), (int, int))> lessonStartTimes = new Dictionary<int, ((int, int), (int, int))>(){
+            {01 , ((08, 00), (08, 45))},
+            {02 , ((08, 45), (09, 30))},
+            {03 , ((09, 50), (10, 35))},
+            {04 , ((10, 35), (11, 20))},
+            {05 , ((11, 40), (12, 25))},
+            {06 , ((12, 25), (13, 10))},
+            {07 , ((13, 15), (14, 00))},
+            {08 , ((14, 00), (14, 45))},
+            {09 , ((14, 45), (15, 30))},
+            {10 , ((15, 40), (16, 25))},
+            {11 , ((16, 25), (17, 10))},
+
+            {-1 , ((17, 10), (08, 00))},
+        };
+        public static (int, int) GetLessonStartTime(int lesson)
+        {
+            if (lessonStartTimes.ContainsKey(lesson))
+            {
+                return lessonStartTimes[lesson].Item1;
+            }
+            return lessonStartTimes[-1].Item1;
+        }
+        public static (int, int) GetLessonEndTime(int lesson)
+        {
+            if (lessonStartTimes.ContainsKey(lesson))
+            {
+                return lessonStartTimes[lesson].Item2;
+            }
+            return lessonStartTimes[-1].Item2;
+        }
         public static void LoadSubjectColors()
         {
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (!File.Exists(path + "colors.json"))
+            string jsonString = FileManager.LoadData(FileManager.fileNames["Colors"]);
+            if (jsonString == null)
             {
                 subjectColors = baseSubjectColors;
                 return;
             }
-            string jsonString = File.ReadAllText(path + "colors.json");
-            Dictionary<string, DummyColorClass> dummyDict = JsonSerializer.Deserialize<Dictionary<string, DummyColorClass>>(jsonString);
             subjectColors = new Dictionary<string, Color>();
+            Dictionary<string, DummyColorClass> dummyDict = JsonSerializer.Deserialize<Dictionary<string, DummyColorClass>>(jsonString);
             foreach (var key in dummyDict.Keys)
             {
                 subjectColors[key] = dummyDict[key].GetColor();
             }
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
+            // if (!File.Exists(path + "colors.json"))
+            // {
+            //     subjectColors = baseSubjectColors;
+            //     return;
+            // }
+            // string jsonString = File.ReadAllText(path + "colors.json");
+            // Dictionary<string, DummyColorClass> dummyDict = JsonSerializer.Deserialize<Dictionary<string, DummyColorClass>>(jsonString);
+            // subjectColors = new Dictionary<string, Color>();
+            // foreach (var key in dummyDict.Keys)
+            // {
+            //     subjectColors[key] = dummyDict[key].GetColor();
+            // }
         }
         public static void SaveSubjectColors()
         {
-            string jsonString = JsonSerializer.Serialize(subjectColors);
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-            File.WriteAllText(path + "colors.json", jsonString);
+            FileManager.SaveData(subjectColors, FileManager.fileNames["Colors"]);
+            // string jsonString = JsonSerializer.Serialize(subjectColors);
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
+            // if (!Directory.Exists(path))
+            // {
+            //     Directory.CreateDirectory(path);
+            // }
+            // File.WriteAllText(path + "colors.json", jsonString);
         }
         public static Color GetColorBySubjectAcronym(string acronym)
         {
@@ -110,7 +154,7 @@ namespace HomeworkPlanner
             {
                 return subjectColors[acronym.ToUpper()];
             }
-            return subjectColors["NO_SUBJECT"];
+            return subjectColors["Freistunde"];
         }
         public static string GetSubjectByAcronym(string acronym)
         {
@@ -163,19 +207,22 @@ namespace HomeworkPlanner
                 Timetable.ShowPlan(Form1.timetablePanel);
             }
         }
+
     }
-    public class DummyColorClass{
-        public int R{ get; set; }
-        public int B{ get; set; }
-        public int G{ get; set; }
-        public int A{ get; set; }
-        public bool IsKnownColor{ get; set; }
-        public bool IsEmpty{ get; set; }
-        public bool IsNamedColor{ get; set; }
-        public bool IsSystemColor{ get; set; }
-        public string Name{ get; set; }
-        public DummyColorClass(){}
-        public Color GetColor(){
+    public class DummyColorClass
+    {
+        public int R { get; set; }
+        public int B { get; set; }
+        public int G { get; set; }
+        public int A { get; set; }
+        public bool IsKnownColor { get; set; }
+        public bool IsEmpty { get; set; }
+        public bool IsNamedColor { get; set; }
+        public bool IsSystemColor { get; set; }
+        public string Name { get; set; }
+        public DummyColorClass() { }
+        public Color GetColor()
+        {
             return Color.FromArgb(A, R, G, B);
         }
     }

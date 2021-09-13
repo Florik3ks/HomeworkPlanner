@@ -6,12 +6,13 @@ namespace HomeworkPlanner
 {
     partial class Form1
     {
-        public Button done;
-        public ComboBox subjectsBox;
-        public TextBox homeworkText;
-        public DateTimePicker dateTimePicker;
+        public static Button done;
+        public static ComboBox subjectsBox;
+        public static TextBox homeworkText;
+        public static DateTimePicker dateTimePicker;
         public ListView homeworkList;
         public ListView pastHomeworkList;
+        public SplitContainer splitContainer;
         public static TableLayoutPanel timetablePanel;
         public static TextBox username;
         public static TextBox password;
@@ -48,11 +49,12 @@ namespace HomeworkPlanner
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            // this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(formBaseWidth, formBaseHeight);
             this.Text = formName;
             this.MinimumSize = new Size(formBaseWidth, formBaseHeight);
             // this.MaximumSize = new Size(formBaseWidth, formBaseHeight);
+            // AutoScaleMode = AutoScaleMode.Dpi;
         }
 
         #endregion
@@ -60,7 +62,7 @@ namespace HomeworkPlanner
 
         private void InitializeComponents()
         {
-            SplitContainer splitContainer = new SplitContainer();
+            splitContainer = new SplitContainer();
             splitContainer.Dock = DockStyle.Fill;
             splitContainer.Name = "splitContainerIDK";
             splitContainer.BorderStyle = BorderStyle.FixedSingle;
@@ -137,8 +139,8 @@ namespace HomeworkPlanner
             homeworkList.Click += OnListSelected;
             homeworkList.Columns.Add("Datum", 125, HorizontalAlignment.Center);
             homeworkList.Columns.Add("Erledigt", 100, HorizontalAlignment.Center);
-            homeworkList.Columns.Add("Fach", 100, HorizontalAlignment.Center);
-            homeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Center);
+            homeworkList.Columns.Add("Fach", 120, HorizontalAlignment.Center);
+            homeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Left);
             homeworkList.FullRowSelect = true;
             homeworkList.LabelEdit = false;
             homeworkList.LabelWrap = true;
@@ -156,8 +158,8 @@ namespace HomeworkPlanner
             // pastHomeworkList.Click += OnListSelected;
             pastHomeworkList.Columns.Add("Datum", 125, HorizontalAlignment.Center);
             pastHomeworkList.Columns.Add("Erledigt", 100, HorizontalAlignment.Center);
-            pastHomeworkList.Columns.Add("Fach", 100, HorizontalAlignment.Center);
-            pastHomeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Center);
+            pastHomeworkList.Columns.Add("Fach", 120, HorizontalAlignment.Center);
+            pastHomeworkList.Columns.Add("Nachricht", -2, HorizontalAlignment.Left);
             pastHomeworkList.LabelEdit = false;
             pastHomeworkList.LabelWrap = true;
             pastHomeworkList.FullRowSelect = true;
@@ -174,13 +176,14 @@ namespace HomeworkPlanner
             tp2.Text = "Einstellungen";
 
             Panel p2 = new Panel();
+            
             p2.Dock = DockStyle.Left;
-            p2.Width = 100;
+            p2.Width = 300;
             p2.Height = Subjects.baseSubjectColors.Keys.Count * 30;
             foreach (string key in Subjects.baseSubjectColors.Keys)
             {
                 Button colorButton = new Button();
-                colorButton.Text = key;
+                colorButton.Text = Subjects.GetSubjectByAcronym(key);
                 colorButton.BackColor = Subjects.GetColorBySubjectAcronym(key);
                 if (colorButton.BackColor.GetBrightness() < .33f)
                 {
@@ -204,12 +207,14 @@ namespace HomeworkPlanner
             username.Dock = DockStyle.Top;
             username.PlaceholderText = "Portal Nutzername";
             username.Height = 50;
-
+            username.TabIndex = 1;
+            
             password = new TextBox();
             password.Dock = DockStyle.Top;
             password.PlaceholderText = "Portal Passwort";
             password.Height = 50;
             password.UseSystemPasswordChar = true;
+            password.TabIndex = 2;
 
             Button portalSubmitButton = new Button();
             portalSubmitButton.Dock = DockStyle.Top;
@@ -218,6 +223,7 @@ namespace HomeworkPlanner
             portalSubmitButton.FlatAppearance.BorderSize = 1;
             portalSubmitButton.Height = 50;
             portalSubmitButton.Click += Timetable.OnLoginCredentialsSubmitButtonClick;
+            portalSubmitButton.TabIndex = 3;
 
             p3.Controls.Add(portalSubmitButton);
             p3.Controls.Add(password);
@@ -228,18 +234,40 @@ namespace HomeworkPlanner
             tp2.Controls.Add(p2);
 
             timetablePanel = new TableLayoutPanel();
-            timetablePanel.ColumnCount = Timetable.timetableWidth;
-            timetablePanel.RowCount = Timetable.timetableHeight;
+            timetablePanel.BackColor = Subjects.GetColorBySubjectAcronym("Freistunde");
+            // timetablePanel.ColumnCount = Timetable.timetableWidth;
+            // timetablePanel.RowCount = Timetable.timetableHeight;
             timetablePanel.Dock = DockStyle.Bottom;
-            timetablePanel.Height = 325;
+            timetablePanel.Height = (int)(splitContainer.Panel1.Height / 2);
             splitContainer.Panel1.Controls.Add(timetablePanel);
-
+            // splitContainer.Panel1.Resize += OnPanel1Resize;
             // tp2.Controls.Add(timeTablePanel);
             TabControl tabControl = new TabControl();
             tabControl.Dock = DockStyle.Fill;
             tabControl.Controls.Add(tp1);
             tabControl.Controls.Add(tp2);
             Controls.Add(tabControl);
+            splitContainer.Panel1.Resize += TimetableResize;
+            // ResizeEnd += TimetableResize;
+            
+        }
+        private void TimetableResize(object sender, EventArgs e){
+            Console.WriteLine("a");
+            timetablePanel.Height = (int)(splitContainer.Panel1.Height / 2);
+            timetablePanel.Width = splitContainer.Panel1.Width;
+            Timetable.ResizeLabels(timetablePanel);
+        }
+        protected override void WndProc(ref Message m)
+        {
+            FormWindowState org = this.WindowState;
+            base.WndProc(ref m);
+            if (this.WindowState != org)
+                this.OnFormWindowStateChanged(EventArgs.Empty);
+        }
+
+        protected virtual void OnFormWindowStateChanged(EventArgs e)
+        {
+            TimetableResize(null, null);
         }
     }
 }

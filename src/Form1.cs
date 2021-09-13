@@ -1,26 +1,46 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.ComponentModel;
 
 namespace HomeworkPlanner
 {
     public partial class Form1 : Form
     {
-        
-        bool isEditing;
-        Assignment currentlyEditing;
+
+        private static bool isEditing;
+        private static Assignment currentlyEditing;
         public Form1()
         {
+            Shown += OnShown;
             Subjects.LoadSubjectColors();
             InitializeComponent();
             InitializeComponents();
-            Homework.LoadAssignments();
-            foreach (Assignment a in Homework.AssignmentList)
-            {
-                AddAssignmentToList(a);
-            }
             isEditing = false;
+
+        }
+        private void OnShown(object sender, EventArgs e)
+        {
+            Config.LoadConfig();
+            Homework.LoadAssignments();
+            for (int i = Homework.AssignmentList.Count - 1; i >= 0; i--)
+            {
+                AddAssignmentToList(Homework.AssignmentList[i], false);
+            }
+            Refresh();
+            BackgroundWorker bgw = new BackgroundWorker();
+            bgw.DoWork += LoadTimetable;
+            bgw.RunWorkerCompleted += LoadTimetableCompleted;
+            bgw.RunWorkerAsync();
+        }
+        private void LoadTimetable(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = sender as BackgroundWorker;
             Timetable.GetTimetable(timetablePanel);
+        }
+        private void LoadTimetableCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            TimetableResize(null, null);
         }
 
         public void SaveButtonPressed(object sender, EventArgs e)
@@ -47,10 +67,19 @@ namespace HomeworkPlanner
                 ResetValues();
             }
         }
-        public void ResetValues(object sender, EventArgs e){
+        public void ResetValues(object sender, EventArgs e)
+        {
             ResetValues();
         }
-        public void ResetValues()
+
+
+        public static void SetValues(DateTime duedate, string subject)
+        {
+            ResetValues();
+            dateTimePicker.Value = duedate;
+            subjectsBox.SelectedIndex = subjectsBox.FindStringExact(subject);
+        }
+        public static void ResetValues()
         {
             dateTimePicker.Value = DateTime.Now;
             subjectsBox.SelectedIndex = 0;
@@ -59,7 +88,8 @@ namespace HomeworkPlanner
             isEditing = false;
             currentlyEditing = null;
         }
-        public void OnDoneClick(object sender, EventArgs e){
+        public void OnDoneClick(object sender, EventArgs e)
+        {
             currentlyEditing.SetDone();
             Homework.EditAssignment(currentlyEditing);
             UpdateItem(currentlyEditing);
@@ -70,43 +100,12 @@ namespace HomeworkPlanner
             homeworkList.Items.RemoveByKey(a.id);
             AddAssignmentToList(a);
         }
-        public void AddAssignmentToList(Assignment a)
+        public void AddAssignmentToList(Assignment a, bool refresh = true)
         {
-            #region idk
-            // listView.Controls.Add()
-            // GroupBox g = new GroupBox();
-            // TextBox date = new TextBox();
-            // TextBox text = new TextBox();
-            // TextBox subject = new TextBox();
-            // PictureBox pb = new PictureBox();
-            // pb.BackColor = a.Done ? Color.Green : Color.Red;
-            // pb.Dock = DockStyle.Top;
-
-            // date.Enabled = false;
-            // date.Dock = DockStyle.Top;
-            // date.Text = FormateDateToString(a.DueDate);
-
-            // text.Text = a.Message;
-            // text.Dock = DockStyle.Top;
-            // text.Enabled = false;
-            // text.Multiline = true;
-
-            // subject.Text = a.Subject;
-            // subject.Enabled = false;
-            // subject.Dock = DockStyle.Top;
-
-            // g.Controls.Add(pb);
-            // g.Controls.Add(text);
-            // g.Controls.Add(subject);
-            // g.Controls.Add(date);
-
-            // g.Dock = DockStyle.Top;
-
-            // listView.Columns.Add(g);
-            #endregion
 
             ListView listToAddTo = homeworkList;
-            if(a.DueDate < DateTime.Now){
+            if (a.DueDate < DateTime.Now)
+            {
                 listToAddTo = pastHomeworkList;
             }
 
@@ -126,7 +125,7 @@ namespace HomeworkPlanner
             sub2.Text = a.Message;
             lwi.SubItems.Add(sub2);
             listToAddTo.Items.Add(lwi);
-            Refresh();
+            if (refresh) Refresh();
         }
 
         private void OnListSelected(object sender, EventArgs e)

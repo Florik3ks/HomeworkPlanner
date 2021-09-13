@@ -33,22 +33,25 @@ namespace HomeworkPlanner
 
         public static void SaveAssignments()
         {
-            string jsonString = JsonSerializer.Serialize(assignmentList);
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-            File.WriteAllText(path + "homework.json", jsonString);
+            FileManager.SaveData(assignmentList, FileManager.fileNames["Homework"]);
+            // string jsonString = JsonSerializer.Serialize(assignmentList);
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
+            // if (!Directory.Exists(path))
+            // {
+            //     Directory.CreateDirectory(path);
+            // }
+            // File.WriteAllText(path + "homework.json", jsonString);
         }
         public static void LoadAssignments()
         {
-            string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            if (!File.Exists(path + "homework.json"))
-            {
-                return;
-            }
-            string jsonString = File.ReadAllText(path + "homework.json");
+            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
+            // if (!File.Exists(path + "homework.json"))
+            // {
+            //     return;
+            // }
+            // string jsonString = File.ReadAllText(path + "homework.json");
+            string jsonString = FileManager.LoadData(FileManager.fileNames["Homework"]);
+            if(jsonString == null) return;
             assignmentList = JsonSerializer.Deserialize<List<Assignment>>(jsonString);
             foreach (Assignment a in assignmentList)
             {

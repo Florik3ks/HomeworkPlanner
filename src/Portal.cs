@@ -20,7 +20,8 @@ namespace HomeworkPlanner
         private const string url = "https://portal.gymnasium-oberstadt.de/";
         private const string stdplanUrl = "https://portal.gymnasium-oberstadt.de/stdplan.php";
         private static HttpClient client;
-        public async static Task<string> GetCookie(string username, string password){
+        public async static Task<string> GetCookie(string username, string password)
+        {
             var cookieJar = new CookieContainer();
             var handler = new HttpClientHandler
             {
@@ -50,17 +51,21 @@ namespace HomeworkPlanner
             }
             return cookieName + "=" + cookieValue;
         }
-        public static string[,] GetPlan(string username, string password)
+        public static string[,] GetPlan(string username, string password, bool showErrors = false)
         {
             string cookie;
             try
             {
                 cookie = GetCookie(username, password).Result;
-            }catch(Exception e){
+            }
+            catch
+            {
                 // Console.WriteLine(e);
-                System.Windows.Forms.MessageBox.Show("Fehler bei der Verbindung!", "Fehler" ,System.Windows.Forms.MessageBoxButtons.OK);
-                
-                return new string[0,0];
+                if (showErrors)
+                {
+                    System.Windows.Forms.MessageBox.Show("Fehler bei der Verbindung!", "Fehler", System.Windows.Forms.MessageBoxButtons.OK);
+                }
+                return new string[0, 0];
             }
             var request2 = (HttpWebRequest)WebRequest.Create(stdplanUrl);
             request2.AllowAutoRedirect = true;
@@ -73,10 +78,14 @@ namespace HomeworkPlanner
             try
             {
                 response = (HttpWebResponse)request2.GetResponse();
-            }catch{
-                System.Windows.Forms.MessageBox.Show("Deine Anmeldedaten sind ungültig!", "Fehler" ,System.Windows.Forms.MessageBoxButtons.OK);
-                
-                return new string[0,0];
+            }
+            catch
+            {
+                if (showErrors)
+                {
+                    System.Windows.Forms.MessageBox.Show("Deine Anmeldedaten sind ungültig!", "Fehler", System.Windows.Forms.MessageBoxButtons.OK);
+                }
+                return new string[0, 0];
             }
             Stream receiveStream = response.GetResponseStream();
 
@@ -88,19 +97,29 @@ namespace HomeworkPlanner
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
-            string[,] timetable = new string[Timetable.timetableWidth, Timetable.timetableHeight];
+            HtmlNode table = doc.DocumentNode.SelectSingleNode("//table");
+            int height = table.SelectNodes("tr").Count;//, Timetable.timetableWidth;
+            int width = Timetable.timetableBaseWidth;
+            // if (height != 0)
+            // {
+                // width = table.SelectNodes("tr")[0].SelectNodes("th|td").Count;// Timetable.timetableHeight;
+            // }
+            string[,] timetable = new string[width, height];
             int day = 0;
             int lesson = 0;
-            HtmlNode table = doc.DocumentNode.SelectSingleNode("//table");
+
             foreach (HtmlNode row in table.SelectNodes("tr"))
             {
                 day = 0;
                 foreach (HtmlNode cell in row.SelectNodes("th|td"))
                 {
                     if (cell.InnerText.Length > 0 && int.TryParse(cell.InnerText.Replace(" ", "").Replace("\n", "").ToCharArray()[0].ToString(), out _)) continue;
-                    if(cell.InnerText.Contains("_")){
+                    if (cell.InnerText.Contains("_"))
+                    {
                         timetable[day, lesson] = cell.InnerText;//.Split("_")[0].PadRight(7);
-                    }else{
+                    }
+                    else
+                    {
                         timetable[day, lesson] = cell.InnerText.Replace("\n", "").Replace(" ", "");//.PadRight(7);
                     }
                     day++;
