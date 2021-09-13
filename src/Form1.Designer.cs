@@ -176,7 +176,7 @@ namespace HomeworkPlanner
             tp2.Text = "Einstellungen";
 
             Panel p2 = new Panel();
-            
+
             p2.Dock = DockStyle.Left;
             p2.Width = 300;
             p2.Height = Subjects.baseSubjectColors.Keys.Count * 30;
@@ -208,13 +208,14 @@ namespace HomeworkPlanner
             username.PlaceholderText = "Portal Nutzername";
             username.Height = 50;
             username.TabIndex = 1;
-            
+
             password = new TextBox();
             password.Dock = DockStyle.Top;
             password.PlaceholderText = "Portal Passwort";
             password.Height = 50;
             password.UseSystemPasswordChar = true;
             password.TabIndex = 2;
+            password.KeyDown += OnPasswordKeyDown;
 
             Button portalSubmitButton = new Button();
             portalSubmitButton.Dock = DockStyle.Top;
@@ -249,9 +250,10 @@ namespace HomeworkPlanner
             Controls.Add(tabControl);
             splitContainer.Panel1.Resize += TimetableResize;
             // ResizeEnd += TimetableResize;
-            
+
         }
-        private void TimetableResize(object sender, EventArgs e){
+        private void TimetableResize(object sender, EventArgs e)
+        {
             Console.WriteLine("a");
             timetablePanel.Height = (int)(splitContainer.Panel1.Height / 2);
             timetablePanel.Width = splitContainer.Panel1.Width;
@@ -268,6 +270,11 @@ namespace HomeworkPlanner
         protected virtual void OnFormWindowStateChanged(EventArgs e)
         {
             TimetableResize(null, null);
+        }
+        private void OnPasswordKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                Timetable.OnLoginCredentialsSubmitButtonClick(sender, e);
         }
     }
 }

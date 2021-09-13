@@ -19,7 +19,7 @@ namespace HomeworkPlanner
         public static void GetTimetable(TableLayoutPanel timetablePanel, bool loadFromPortal = false)
         {
             string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
-            if (loadFromPortal || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"]))
+            if (loadFromPortal/* || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"])*/)
             {
                 LoadPlan(loadingType.reloadFromPortal, false, Config.portalUsername, Config.portalPassword);
             }
@@ -31,6 +31,7 @@ namespace HomeworkPlanner
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
+            if(timetable == null) return;
             if (!hasTimetableChangedSinceRedraw)
             {
                 Console.WriteLine("no");
