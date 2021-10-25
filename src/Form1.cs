@@ -13,18 +13,21 @@ namespace HomeworkPlanner
         public Form1()
         {
             Shown += OnShown;
+            Timetable.GetTimetable(timetablePanel, false, false);
             Subjects.LoadSubjectColors();
             InitializeComponent();
             InitializeComponents();
             isEditing = false;
-
         }
         private void OnShown(object sender, EventArgs e)
         {
             Config.LoadConfig();
+            SubstitutionPlan.ShowPlan();
+            SubstitutionPlanResize(null, null);
             // get local timetable on startup
-            Timetable.GetTimetable(timetablePanel, false);
-            TimetableResize(null, null);
+            Timetable.ShowPlan(timetablePanel);
+            ResetValues();
+            // TimetableResize(null, null);
             // load assignments
             Homework.LoadAssignments();
             for (int i = Homework.AssignmentList.Count - 1; i >= 0; i--)
@@ -45,7 +48,8 @@ namespace HomeworkPlanner
         }
         private void LoadTimetableCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            TimetableResize(null, null);
+            // TimetableResize(null, null);
+            ResetValues();
         }
 
         public void SaveButtonPressed(object sender, EventArgs e)
@@ -87,7 +91,24 @@ namespace HomeworkPlanner
         public static void ResetValues()
         {
             dateTimePicker.Value = DateTime.Now;
-            subjectsBox.SelectedIndex = 0;
+
+            string s = Timetable.GetCurrentSubject();
+            int index = subjectsBox.FindStringExact(s);
+            subjectsBox.SelectedIndex = index == -1 ? 0 : index;
+            DateTime duedate = DateTime.Now;
+            int day, lesson, hour, minutes;
+            (day, lesson) = Timetable.GetNextSubjectLesson(s);
+            if (lesson != -1)
+            {
+                (hour, minutes) = Subjects.GetLessonStartTime(lesson);
+                DayOfWeek dayOfWeek = Timetable.GetCurrentWeekDayByDayIndex(day);
+                // duedate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day, hour, minutes, 0);
+                duedate = new DateTime(DateTime.Today.AddDays(1).Year, DateTime.Today.AddDays(1).Month, DateTime.Today.AddDays(1).Day, hour, minutes, 0);
+                duedate = Timetable.GetNextWeekday(duedate, dayOfWeek);
+            }
+            dateTimePicker.Value = duedate;
+
+
             homeworkText.Text = "";
             done.Enabled = false;
             isEditing = false;

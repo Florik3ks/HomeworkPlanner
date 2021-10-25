@@ -27,7 +27,7 @@ namespace HomeworkPlanner
         //     {"Chemie", "CH"},
         //     {"Kunst", "BK"},//
         //     {"Darstellendes Spiel", "DS"},
-        //     {"Französisch", "FR"},//
+        //     {"Französisch", "F"},//
         //     {"k. Religion", "RELRK"},
         //     {"ev. Religion", "RELEV"},
         //     {"Ethik", "ETH"},
@@ -47,13 +47,19 @@ namespace HomeworkPlanner
             {"SP", "Sport"},
             {"BIO", "Biologie"},
             {"CH", "Chemie"},
+            {"S", "Spanisch"},
+            {"L", "Latein"},
             {"BK", "Kunst"},//
             {"DS", "Darstellendes Spiel"},
-            {"FR", "Französisch"},//
+            {"F", "Französisch"},//
             {"RELRK", "k. Religion"},
             {"RELEV", "ev. Religion"},
             {"ETH", "Ethik"},
             {"PHIL", "Philosophie"},
+            {"KL", "Klassenleiterstunde"},
+            {"ITG", "Informatisch Technologische Grundlagen"},
+            {"NW", "Naturwissenschaften"},
+            {"SONSTIGES", "Sonstiges"},
             {"FREISTUNDE","Freistunde"}
         };
         public static Dictionary<string, Color> baseSubjectColors { get; private set; } = new Dictionary<string, Color>{
@@ -72,11 +78,15 @@ namespace HomeworkPlanner
             {"CH", Color.LightGreen},
             {"BK", Color.Purple},//
             {"DS", Color.White},
-            {"FR", Color.Orange},//
+            {"F", Color.Orange},//
+            {"L", Color.Cyan},//
             {"RELRK", Color.Lavender},
             {"RELEV", Color.Lavender},
             {"ETH", Color.Lavender},
             {"PHIL", Color.SlateGray},
+            {"KL", Color.SlateGray},
+            {"ITG", Color.SlateGray},
+            {"NW", Color.SeaGreen},
             {"FREISTUNDE", Color.White}
         };
         private static Dictionary<int, ((int, int), (int, int))> lessonStartTimes = new Dictionary<int, ((int, int), (int, int))>(){
@@ -94,6 +104,23 @@ namespace HomeworkPlanner
 
             {-1 , ((17, 10), (08, 00))},
         };
+        public static string GetSubjectNameByTimetableString(string ttString)
+        {
+            string subject = "";
+            char[] ar = ttString.Replace("\n", "").Split("_")[0].ToCharArray();
+            bool subjectStarted = false;
+            for (int i = 0; i < ar.Length; i++)
+            {
+                if (ar[i] != ' ')
+                {
+                    subjectStarted = true;
+                    subject += ar[i];
+                }
+                else if (subjectStarted)
+                    return subject;
+            }
+            return subject == "" ? ttString : subject;
+        }
         public static (int, int) GetLessonStartTime(int lesson)
         {
             if (lessonStartTimes.ContainsKey(lesson))
@@ -110,6 +137,27 @@ namespace HomeworkPlanner
             }
             return lessonStartTimes[-1].Item2;
         }
+        public static String[] GetSubjectsThatTheUserHas()
+        {
+            List<String> subjects = new List<String>();
+            if (Timetable.timetable.GetLength(0) == 0 && Timetable.timetable.GetLength(1) == 0) return GetSubjects();
+            string s;
+            for (int x = 0; x < Timetable.timetable.GetLength(0); x++)
+            {
+                for (int y = 0; y < Timetable.timetable.GetLength(1); y++)
+                {
+                    s = GetSubjectByAcronym(GetSubjectNameByTimetableString(Timetable.timetable[x, y]));
+                    if (s == "-") continue;
+                    if (!subjects.Contains(s))
+                    {
+                        subjects.Add(s);
+                    }
+                }
+            }
+            subjects.Sort();
+            subjects.Add("Sonstiges");
+            return subjects.ToArray();
+        }
         public static void LoadSubjectColors()
         {
             string jsonString = FileManager.LoadData(FileManager.fileNames["Colors"]);
@@ -124,19 +172,25 @@ namespace HomeworkPlanner
             {
                 subjectColors[key.ToUpper()] = dummyDict[key].GetColor();
             }
-            // string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Florian\\HomeworkPlanner\\";
-            // if (!File.Exists(path + "colors.json"))
-            // {
-            //     subjectColors = baseSubjectColors;
-            //     return;
-            // }
-            // string jsonString = File.ReadAllText(path + "colors.json");
-            // Dictionary<string, DummyColorClass> dummyDict = JsonSerializer.Deserialize<Dictionary<string, DummyColorClass>>(jsonString);
-            // subjectColors = new Dictionary<string, Color>();
-            // foreach (var key in dummyDict.Keys)
-            // {
-            //     subjectColors[key] = dummyDict[key].GetColor();
-            // }
+            CheckForWrongOrMissingColorAcronyms();
+        }
+        // needed for compatibility reasons
+        public static void CheckForWrongOrMissingColorAcronyms()
+        {
+            foreach (var key in baseSubjectColors.Keys)
+            {
+                if (!subjectColors.ContainsKey(key))
+                {
+                    subjectColors.Add(key, baseSubjectColors[key]);
+                }
+            }
+            foreach (var key in baseSubjectColors.Keys)
+            {
+                if (!subjectColors.ContainsKey(key))
+                {
+                    subjectColors.Remove(key);
+                }
+            }
         }
         public static void SaveSubjectColors()
         {
@@ -165,6 +219,14 @@ namespace HomeworkPlanner
             }
             return acronym;
         }
+        public static string GetAcronymBySubject(string subject)
+        {
+            foreach (var key in subjects.Keys)
+            {
+                if (subject == subjects[key]) return key;
+            }
+            return subject;
+        }
         public static string[] GetSubjects()
         {
             // string[] result = new string[subjects.Keys.Count];
@@ -187,7 +249,7 @@ namespace HomeworkPlanner
         }
         public static void ColorButtonClick(object sender, System.EventArgs e)
         {
-            Button b = (Button)sender;
+            Control b = (Control)sender;
             ColorDialog dialog = new ColorDialog();
             dialog.ShowHelp = false;
             dialog.Color = b.BackColor;
@@ -205,8 +267,23 @@ namespace HomeworkPlanner
                 b.BackColor = dialog.Color;
                 subjectColors[(string)b.Tag] = dialog.Color;
                 SaveSubjectColors();
+                Timetable.hasTimetableChangedSinceRedraw = true;
                 Timetable.ShowPlan(Form1.timetablePanel);
             }
+        }
+        public static void ColorListSelectionChanged(object sender, EventArgs e)
+        {
+            ComboBox box = sender as ComboBox;
+            string acronym = GetAcronymBySubject(box.SelectedItem.ToString());
+            Form1.colorPictureBox.Tag = acronym;
+            Form1.colorPictureBox.BackColor = GetColorBySubjectAcronym(acronym);
+        }
+        public static void ColorListHoverChanged(object sender, ComboBoxListEx.ListItemSelectionChangedEventArgs e)
+        {
+            if (e.ItemText.ToString() == "") return;
+            string acronym = GetAcronymBySubject(e.ItemText.ToString());
+            Form1.colorPictureBox.Tag = acronym;
+            Form1.colorPictureBox.BackColor = GetColorBySubjectAcronym(acronym);
         }
 
     }

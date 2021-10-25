@@ -19,6 +19,7 @@ namespace HomeworkPlanner
         public static bool HasPortalLoginDetails = false;
         private const string url = "https://portal.gymnasium-oberstadt.de/";
         private const string stdplanUrl = "https://portal.gymnasium-oberstadt.de/stdplan.php";
+        private const string substitutionPlanUrl = "https://portal.gymnasium-oberstadt.de/vertretung.php";
         private static HttpClient client;
         public async static Task<string> GetCookie(string username, string password)
         {
@@ -53,6 +54,43 @@ namespace HomeworkPlanner
         }
         public static string[,] GetPlan(string username, string password, bool showErrors = false)
         {
+            string html = GetHtmlFromUrl(stdplanUrl, username, password, showErrors);
+            if(html == "")return new string[0, 0];
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            HtmlNode table = doc.DocumentNode.SelectSingleNode("//table");
+            int height = table.SelectNodes("tr").Count;//, Timetable.timetableWidth;
+            int width = Timetable.timetableBaseWidth;
+            // if (height != 0)
+            // {
+            // width = table.SelectNodes("tr")[0].SelectNodes("th|td").Count;// Timetable.timetableHeight;
+            // }
+            string[,] timetable = new string[width, height];
+            int day = 0;
+            int lesson = 0;
+
+            foreach (HtmlNode row in table.SelectNodes("tr"))
+            {
+                day = 0;
+                foreach (HtmlNode cell in row.SelectNodes("th|td"))
+                {
+                    if (cell.InnerText.Length > 0 && int.TryParse(cell.InnerText.Replace(" ", "").Replace("\n", "").ToCharArray()[0].ToString(), out _)) continue;
+                    if (cell.InnerText.Replace(" ", "").Replace("\n", "") == "-")
+                    {
+                        timetable[day, lesson] = cell.InnerText.Replace("\n", "").Replace(" ", "");//.PadRight(7);
+                    }
+                    else //(cell.InnerText.Contains("_"))
+                    {
+                        timetable[day, lesson] = cell.InnerText;//.Split("_")[0].PadRight(7);
+                    }
+                    day++;
+                }
+                lesson++;
+            }
+            return timetable;
+        }
+        public static string GetHtmlFromUrl(string url, string username, string password, bool showErrors=false){
             string cookie;
             try
             {
@@ -60,14 +98,13 @@ namespace HomeworkPlanner
             }
             catch
             {
-                // Console.WriteLine(e);
                 if (showErrors)
                 {
                     System.Windows.Forms.MessageBox.Show("Fehler bei der Verbindung!", "Fehler", System.Windows.Forms.MessageBoxButtons.OK);
                 }
-                return new string[0, 0];
+                return "";
             }
-            var request2 = (HttpWebRequest)WebRequest.Create(stdplanUrl);
+            var request2 = (HttpWebRequest)WebRequest.Create(url);
             request2.AllowAutoRedirect = true;
             request2.UseDefaultCredentials = true;
             request2.PreAuthenticate = true;
@@ -85,7 +122,7 @@ namespace HomeworkPlanner
                 {
                     System.Windows.Forms.MessageBox.Show("Deine Anmeldedaten sind ungültig!", "Fehler", System.Windows.Forms.MessageBoxButtons.OK);
                 }
-                return new string[0, 0];
+                return "";
             }
             Stream receiveStream = response.GetResponseStream();
 
@@ -93,40 +130,68 @@ namespace HomeworkPlanner
             string html = readStream.ReadToEnd();
             response.Close();
             readStream.Close();
-
+            return html;
+        }
+        public static List<Substitution> GetSubstitutionPlan(string username, string password, bool showErrors = false)
+        {
+            string html = GetHtmlFromUrl(substitutionPlanUrl, username, password, showErrors);
+            if (html == "") return new List<Substitution>();
+            // string path = @"C:\Users\flori\Documents\Code\HomeworkPlanner\subPlan.txt";
+            // html = File.ReadAllText(path);
+            // debug
+            List<Substitution> substitutions = new List<Substitution>();
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
-
-            HtmlNode table = doc.DocumentNode.SelectSingleNode("//table");
-            int height = table.SelectNodes("tr").Count;//, Timetable.timetableWidth;
-            int width = Timetable.timetableBaseWidth;
-            // if (height != 0)
-            // {
-                // width = table.SelectNodes("tr")[0].SelectNodes("th|td").Count;// Timetable.timetableHeight;
-            // }
-            string[,] timetable = new string[width, height];
-            int day = 0;
-            int lesson = 0;
-
-            foreach (HtmlNode row in table.SelectNodes("tr"))
+            int rowNum = 0;
+            int cellNum = 0;
+            int tableNum = 0;
+            foreach (HtmlNode table in doc.DocumentNode.SelectNodes("//table"))
             {
-                day = 0;
-                foreach (HtmlNode cell in row.SelectNodes("th|td"))
+                rowNum = 0;
+                foreach (HtmlNode row in table.SelectNodes("tr"))
                 {
-                    if (cell.InnerText.Length > 0 && int.TryParse(cell.InnerText.Replace(" ", "").Replace("\n", "").ToCharArray()[0].ToString(), out _)) continue;
-                    if (cell.InnerText.Contains("_"))
+                    cellNum = 0;
+                    Dictionary<int, string> cellContents = new Dictionary<int, string>();
+                    foreach (HtmlNode cell in row.SelectNodes("th|td"))
                     {
-                        timetable[day, lesson] = cell.InnerText;//.Split("_")[0].PadRight(7);
+                        // (rowNum > 0)
+                        // {
+                            cellContents.Add(cellNum, cell.InnerText);
+                        // }
+                        cellNum++;
                     }
-                    else
+                    if (cellContents.Count == 7)
                     {
-                        timetable[day, lesson] = cell.InnerText.Replace("\n", "").Replace(" ", "");//.PadRight(7);
+                        DateTime d = GetNextWeekdayAfterDays(tableNum);
+                        Substitution s = new Substitution(d,
+                            cellContents[0], cellContents[1], cellContents[2],
+                            cellContents[3], cellContents[4], cellContents[5], cellContents[6]
+                            );
+                        substitutions.Add(s);
                     }
-                    day++;
+                    rowNum++;
                 }
-                lesson++;
+                tableNum++;
             }
-            return timetable;
+            substitutions.Reverse();
+            return substitutions;
+        }
+        public static DateTime GetNextWeekdayAfterDays(int days)
+        {
+            DateTime d = DateTime.Today;
+            for (int i = 0; i < days; i++)
+            {
+                while (d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday)
+                {
+                    d = d.AddDays(1);
+                }
+                d = d.AddDays(1);
+            }
+            while (d.DayOfWeek == DayOfWeek.Saturday || d.DayOfWeek == DayOfWeek.Sunday)
+            {
+                d = d.AddDays(1);
+            }
+            return d;
         }
     }
 }

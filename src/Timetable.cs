@@ -3,6 +3,8 @@ using System.Drawing;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HomeworkPlanner
 {
@@ -11,12 +13,12 @@ namespace HomeworkPlanner
         public const int timetableBaseHeight = 11;
         public const int timetableBaseWidth = 5;
         public static string[,] timetable;
-        private static bool hasTimetableChangedSinceRedraw = false;
+        public static bool hasTimetableChangedSinceRedraw = false;
         public enum loadingType
         {
             reloadFromPortal, loadFromFile
         };
-        public static void GetTimetable(TableLayoutPanel timetablePanel, bool loadFromPortal = false)
+        public static void GetTimetable(TableLayoutPanel timetablePanel, bool loadFromPortal = false, bool showPlan = true)
         {
             string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + FileManager.path;
             if (loadFromPortal/* || !File.Exists(path + FileManager.fileNames["Timetable"] + FileManager.fileNames["ext"])*/)
@@ -27,14 +29,16 @@ namespace HomeworkPlanner
             {
                 LoadPlan(loadingType.loadFromFile, false, Config.portalUsername, Config.portalPassword);
             }
-            ShowPlan(timetablePanel);
+            if (showPlan)
+            {
+                ShowPlan(timetablePanel);
+            }
         }
         public static void ShowPlan(TableLayoutPanel timetablePanel)
         {
             if (timetable == null) return;
             if (!hasTimetableChangedSinceRedraw)
             {
-                Console.WriteLine("no");
                 return;
             }
             hasTimetableChangedSinceRedraw = false;
@@ -78,7 +82,9 @@ namespace HomeworkPlanner
                         label.Width = timetablePanel.Width / timetablePanel.ColumnCount * 2;
                         label.Tag = (day, lesson);
                         label.Click += SetValuesFromLabel;
-                        string subject = timetable[day, lesson].Replace(" ", "").Replace("\n", "").Split("_")[0];
+                        string subject = Subjects.GetSubjectNameByTimetableString(timetable[day, lesson]);
+
+                        //  = timetable[day, lesson].Replace("\n", "").Split()[0].Split("_")[0];//Replace(" ", "").Split("_")[0];
                         subject = (subject != "-") ? subject : "FREISTUNDE";
                         label.BackColor = Subjects.GetColorBySubjectAcronym(subject);
                         if (label.BackColor.GetBrightness() < .33f)
@@ -121,13 +127,25 @@ namespace HomeworkPlanner
                     }
                 }
             }
+            ResizeLabels(Form1.timetablePanel);
         }
         public static void ResizeLabels(TableLayoutPanel timetablePanel)
         {
             for (int i = 0; i < timetablePanel.Controls.Count; i++)
             {
-                timetablePanel.Controls[i].Height = timetablePanel.Height / timetablePanel.RowCount;
-                timetablePanel.Controls[i].Width = timetablePanel.Width / timetablePanel.ColumnCount;
+                if (timetablePanel.InvokeRequired)
+                {
+                    timetablePanel.Invoke(new Action(() =>
+                    {
+                        timetablePanel.Controls[i].Height = timetablePanel.Height / timetablePanel.RowCount;
+                        timetablePanel.Controls[i].Width = timetablePanel.Width / timetablePanel.ColumnCount;
+                    }));
+                }
+                else
+                {
+                    timetablePanel.Controls[i].Height = timetablePanel.Height / timetablePanel.RowCount;
+                    timetablePanel.Controls[i].Width = timetablePanel.Width / timetablePanel.ColumnCount;
+                }
             }
         }
         public static void SetValuesFromLabel(object sender, EventArgs e)
@@ -139,6 +157,12 @@ namespace HomeworkPlanner
             if (acronym == "-") { return; }
             string subject = Subjects.GetSubjectByAcronym(acronym);
             (hour, minutes) = Subjects.GetLessonStartTime(lesson);
+            DayOfWeek dayOfWeek = GetCurrentWeekDayByDayIndex(day);
+            DateTime duedate = new DateTime(DateTime.Today.AddDays(1).Year, DateTime.Today.AddDays(1).Month, DateTime.Today.AddDays(1).Day, hour, minutes, 0);
+            duedate = GetNextWeekday(duedate, dayOfWeek);
+            Form1.SetValues(duedate, subject);
+        }
+        public static DayOfWeek GetCurrentWeekDayByDayIndex(int day){
 
             DayOfWeek dayOfWeek = DayOfWeek.Monday;
             switch (day)
@@ -165,10 +189,9 @@ namespace HomeworkPlanner
                     dayOfWeek = DayOfWeek.Sunday;
                     break;
             }
-            DateTime duedate = new DateTime(DateTime.Today.AddDays(1).Year, DateTime.Today.AddDays(1).Month, DateTime.Today.AddDays(1).Day, hour, minutes, 0);
-            duedate = GetNextWeekday(duedate, dayOfWeek);
-            Form1.SetValues(duedate, subject);
+            return dayOfWeek;
         }
+        
         public static DateTime GetNextWeekday(DateTime start, DayOfWeek day)
         {
             int daysToAdd = ((int)day - (int)start.DayOfWeek + 7) % 7;
@@ -192,7 +215,7 @@ namespace HomeworkPlanner
             Portal.HasPortalLoginDetails = true;
             bool result = LoadPlan(loadingType.reloadFromPortal, true, Form1.username.Text, Form1.password.Text);
             ShowPlan(Form1.timetablePanel);
-            ResizeLabels(Form1.timetablePanel);
+            // ResizeLabels(Form1.timetablePanel);
             if (result && timetable.Length > 0)
             {
                 MessageBox.Show("Stundenplan erfolgreich geladen!");
@@ -231,6 +254,15 @@ namespace HomeworkPlanner
                     {
                         timetable = tt;
                         SavePlan();
+                        String[] newSubjects = Subjects.GetSubjectsThatTheUserHas();
+                        // if (((String[])Form1.subjectsBox.DataSource).ToList().Contains(Form1.subjectsBox.SelectedText)){
+                        // ;
+                        // }
+                        Form1.subjectsBox.Invoke(new Action(() =>
+                        {
+                            Form1.subjectsBox.DataSource = newSubjects;
+                            Form1.subjectsBox.Refresh();
+                        }));
                         return true;
                     }
                     return false;
@@ -253,6 +285,54 @@ namespace HomeworkPlanner
             if (!AreTTEqual(tt, timetable)) hasTimetableChangedSinceRedraw = true;
             timetable = tt;
             return true;
+        }
+        public static (int, int) GetNextSubjectLesson(string subjectName){
+            int currentDay, currentLesson;
+            (currentDay, currentLesson) = GetCurrentLessons();
+            if((currentDay, currentLesson) == (-1, -1)) return (-1, -1);
+            // rest days of the week
+            for (int d = currentDay + 1; d < timetableBaseWidth; d++){
+                for (int l = 0; l < timetableBaseHeight; l++){
+                    if(Subjects.GetSubjectByAcronym(Subjects.GetSubjectNameByTimetableString(timetable[d, l])) == subjectName){
+                        return (d, l + 1);
+                    }
+                }
+            }
+            // first days of the next week
+            for (int d = 0; d <= currentDay; d++){
+                for (int l = 0; l < timetableBaseHeight; l++){
+                    if(Subjects.GetSubjectByAcronym(Subjects.GetSubjectNameByTimetableString(timetable[d, l])) == subjectName){
+                        return (d, l + 1);
+                    }
+                }
+            }
+            return (-1, -1);
+        }
+        public static (int, int) GetCurrentLessons()
+        {
+            DateTime currentDate = DateTime.Now;
+            int hour = 0;
+            int minutes = 0;
+            int lesson = -1;
+            for (int i = 0; i < timetableBaseHeight; i++)
+            {
+                (hour, minutes) = Subjects.GetLessonStartTime(i + 1);
+                if ((hour == currentDate.Hour && minutes >= currentDate.Minute) || hour > currentDate.Hour)
+                {
+                    lesson = i - 1;
+                    break;
+                }
+            }
+            if (lesson == -1) return (-1, -1);
+            int dayIndex = (int)currentDate.DayOfWeek - 1;
+            return (dayIndex, lesson);
+        }
+        public static string GetCurrentSubject()
+        {
+            int day, hour;
+            (day, hour) = GetCurrentLessons();
+            if(day == -1 || hour == -1 || hour >= timetableBaseHeight || day >= timetableBaseWidth) return "-";
+            return Subjects.GetSubjectByAcronym(Subjects.GetSubjectNameByTimetableString(timetable[day, hour]));
         }
         public static void SavePlan()
         {

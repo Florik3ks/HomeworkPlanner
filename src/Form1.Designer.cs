@@ -16,6 +16,10 @@ namespace HomeworkPlanner
         public static TableLayoutPanel timetablePanel;
         public static TextBox username;
         public static TextBox password;
+        public static PictureBox colorPictureBox;
+        public static Panel spPanel1;
+        public static Panel spPanel2;
+        public static Panel spPanel3;
         private int formBaseWidth = (int)(800 * 1.5);
         private int formBaseHeight = (int)(450 * 1.5);
         private string formName = "Hausaufgabenplaner";
@@ -67,12 +71,12 @@ namespace HomeworkPlanner
             splitContainer.Name = "splitContainerIDK";
             splitContainer.BorderStyle = BorderStyle.FixedSingle;
 
-
             // subject box
             subjectsBox = new ComboBox();
-            subjectsBox.DataSource = Subjects.GetSubjects();
+            subjectsBox.DataSource = Subjects.GetSubjectsThatTheUserHas();
             subjectsBox.DropDownStyle = ComboBoxStyle.DropDownList;
             subjectsBox.Dock = DockStyle.Top;
+            subjectsBox.FlatStyle = FlatStyle.Popup;
 
 
             homeworkText = new TextBox();
@@ -152,7 +156,7 @@ namespace HomeworkPlanner
             pastHomeworkList = new ListView();
             pastHomeworkList.BackColor = Color.LightGray;
             pastHomeworkList.Dock = DockStyle.Bottom;
-            pastHomeworkList.Size = new Size(0, 150);
+            pastHomeworkList.Size = new Size(0, 250);
             pastHomeworkList.Scrollable = true;
             pastHomeworkList.View = View.Details;
             // pastHomeworkList.Click += OnListSelected;
@@ -179,24 +183,52 @@ namespace HomeworkPlanner
 
             p2.Dock = DockStyle.Left;
             p2.Width = 300;
-            p2.Height = Subjects.baseSubjectColors.Keys.Count * 30;
-            foreach (string key in Subjects.baseSubjectColors.Keys)
+            p2.Height = 100;
+
+            colorPictureBox = new PictureBox();
+            colorPictureBox.Height = 73;
+            colorPictureBox.Dock = DockStyle.Top;
+            colorPictureBox.MouseClick += Subjects.ColorButtonClick;
+            ComboBoxListEx colorComboBox = new ComboBoxListEx();
+            String[] s = new String[Subjects.baseSubjectColors.Keys.Count];
+            int i = 0;
+            foreach (String key in Subjects.baseSubjectColors.Keys)
             {
-                Button colorButton = new Button();
-                colorButton.Text = Subjects.GetSubjectByAcronym(key);
-                colorButton.BackColor = Subjects.GetColorBySubjectAcronym(key);
-                if (colorButton.BackColor.GetBrightness() < .33f)
-                {
-                    colorButton.ForeColor = Color.White;
-                }
-                colorButton.FlatStyle = FlatStyle.Flat;
-                colorButton.FlatAppearance.BorderSize = 0;
-                colorButton.Tag = key;
-                colorButton.Height = 30;
-                colorButton.Click += Subjects.ColorButtonClick;
-                colorButton.Dock = DockStyle.Top;
-                p2.Controls.Add(colorButton);
+                s[i] = Subjects.GetSubjectByAcronym(key);
+                i++;
             }
+            string acronym = Subjects.GetAcronymBySubject(s[0]);
+            colorPictureBox.BackColor = Subjects.GetColorBySubjectAcronym(acronym);
+            colorPictureBox.Tag = acronym;
+            colorPictureBox.BorderStyle = BorderStyle.Fixed3D;
+
+            colorComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            colorComboBox.FlatStyle = FlatStyle.Popup;
+            colorComboBox.DroppedDown = true;
+            colorComboBox.SelectedIndexChanged += Subjects.ColorListSelectionChanged;
+            colorComboBox.ListItemSelectionChanged += Subjects.ColorListHoverChanged;
+            colorComboBox.DataSource = s;
+            colorComboBox.Dock = DockStyle.Top;
+            p2.Controls.Add(colorComboBox);
+            p2.Controls.Add(colorPictureBox);
+            // foreach (string key in Subjects.baseSubjectColors.Keys)
+            // {
+            //     Button colorButton = new Button();
+            //     colorButton.Text = Subjects.GetSubjectByAcronym(key);
+            //     colorButton.Font = new System.Drawing.Font(colorButton.Font.FontFamily, 8);
+            //     colorButton.BackColor = Subjects.GetColorBySubjectAcronym(key);
+            //     if (colorButton.BackColor.GetBrightness() < .33f)
+            //     {
+            //         colorButton.ForeColor = Color.White;
+            //     }
+            //     colorButton.FlatStyle = FlatStyle.Flat;
+            //     colorButton.FlatAppearance.BorderSize = 0;
+            //     colorButton.Tag = key;
+            //     colorButton.Height = Height / Subjects.baseSubjectColors.Keys.Count;
+            //     colorButton.Click += Subjects.ColorButtonClick;
+            //     colorButton.Dock = DockStyle.Top;
+            //     p2.Controls.Add(colorButton);
+            // }
 
             Panel p3 = new Panel();
             p3.Dock = DockStyle.Left;
@@ -243,13 +275,36 @@ namespace HomeworkPlanner
             splitContainer.Panel1.Controls.Add(timetablePanel);
             // splitContainer.Panel1.Resize += OnPanel1Resize;
             // tp2.Controls.Add(timeTablePanel);
+
+            #region NextVersion
+            TabPage tp3 = new TabPage();
+            tp3.Text = "Vertretungsplan";
+
+            spPanel1 = new Panel();
+            spPanel1.Dock = DockStyle.Left;
+            spPanel1.BackColor = Color.LightGray;
+            spPanel2 = new Panel();
+            spPanel2.Dock = DockStyle.Left;
+            spPanel2.BackColor = Color.White;
+            spPanel3 = new Panel();
+            spPanel3.Dock = DockStyle.Left;
+            spPanel3.BackColor = Color.LightGray;
+
+            tp3.Controls.Add(spPanel1);
+            tp3.Controls.Add(spPanel2);
+            tp3.Controls.Add(spPanel3);
+            #endregion
+
             TabControl tabControl = new TabControl();
             tabControl.Dock = DockStyle.Fill;
             tabControl.Controls.Add(tp1);
+            tabControl.Controls.Add(tp3);
             tabControl.Controls.Add(tp2);
             Controls.Add(tabControl);
-            splitContainer.Panel1.Resize += TimetableResize;
+           
+            splitContainer.Panel1.Resize += TimetableResize; 
             // ResizeEnd += TimetableResize;
+            ResizeEnd += SubstitutionPlanResize;
 
         }
         private void TimetableResize(object sender, EventArgs e)
@@ -258,6 +313,12 @@ namespace HomeworkPlanner
             timetablePanel.Height = (int)(splitContainer.Panel1.Height / 2);
             timetablePanel.Width = splitContainer.Panel1.Width;
             Timetable.ResizeLabels(timetablePanel);
+        }
+        private void SubstitutionPlanResize(object sender, EventArgs e){
+            spPanel1.Width = Width / 3;
+            spPanel2.Width = Width / 3;
+            spPanel3.Width = Width / 3;
+            SubstitutionPlan.ShowPlan();
         }
         protected override void WndProc(ref Message m)
         {
@@ -270,6 +331,7 @@ namespace HomeworkPlanner
         protected virtual void OnFormWindowStateChanged(EventArgs e)
         {
             TimetableResize(null, null);
+            SubstitutionPlanResize(null, null);
         }
         private void OnPasswordKeyDown(object sender, KeyEventArgs e)
         {
