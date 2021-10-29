@@ -30,7 +30,6 @@ namespace HomeworkPlanner
             if (portalUsername != "" && portalPassword != "" && portalUsername != null && portalPassword != null)
             {
                 Portal.HasPortalLoginDetails = true;
-                Form1.username.Text = portalUsername;
             }
         }
     }

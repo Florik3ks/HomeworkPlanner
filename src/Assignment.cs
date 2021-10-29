@@ -23,7 +23,7 @@ namespace HomeworkPlanner{
         }
     
         public void SetDone(){
-            done = true;
+            done = !done;
         }
     }
 }

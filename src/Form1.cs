@@ -13,6 +13,7 @@ namespace HomeworkPlanner
         public Form1()
         {
             Shown += OnShown;
+            Config.LoadConfig();
             Timetable.GetTimetable(timetablePanel, false, false);
             Subjects.LoadSubjectColors();
             InitializeComponent();
@@ -21,7 +22,6 @@ namespace HomeworkPlanner
         }
         private void OnShown(object sender, EventArgs e)
         {
-            Config.LoadConfig();
             SubstitutionPlan.ShowPlan();
             SubstitutionPlanResize(null, null);
             // get local timetable on startup

@@ -34,10 +34,10 @@ namespace HomeworkPlanner
                 ShowPlan(timetablePanel);
             }
         }
-        public static void ShowPlan(TableLayoutPanel timetablePanel)
+        public static void ShowPlan(TableLayoutPanel timetablePanel, bool force = false)
         {
             if (timetable == null) return;
-            if (!hasTimetableChangedSinceRedraw)
+            if (!hasTimetableChangedSinceRedraw && !force)
             {
                 return;
             }
