@@ -276,13 +276,19 @@ namespace HomeworkPlanner {
             spPanel2 = new Panel ();
             spPanel2.Dock = DockStyle.Left;
             spPanel2.BackColor = Color.White;
+            // TextBox loadingText = new TextBox();
+            // loadingText.Dock = DockStyle.Left;
+            // loadingText.Enabled = false;
+            // loadingText.Text = "lädt noch..";
+            // loadingText.BackColor = Color.BlueViolet;
+            // spPanel1.Controls.Add(loadingText);
             spPanel3 = new Panel ();
             spPanel3.Dock = DockStyle.Left;
             spPanel3.BackColor = Color.LightGray;
 
-            tp3.Controls.Add (spPanel1);
-            tp3.Controls.Add (spPanel2);
             tp3.Controls.Add (spPanel3);
+            tp3.Controls.Add (spPanel2);
+            tp3.Controls.Add (spPanel1);
 
             TabControl tabControl = new TabControl ();
             tabControl.Dock = DockStyle.Fill;

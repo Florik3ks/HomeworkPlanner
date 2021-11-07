@@ -8,7 +8,7 @@ namespace HomeworkPlanner
 {
     public static class SubstitutionPlan
     {
-        private static List<Substitution> substitutions;
+        private static List<Substitution> substitutions = new List<Substitution>();
         private static Dictionary<string, int> GetWidths(Font font)
         {
             Dictionary<string, int> widths = new Dictionary<string, int>();
@@ -31,9 +31,25 @@ namespace HomeworkPlanner
         }
         public static void ShowPlan()
         {
-            Form1.spPanel1.Controls.Clear();
-            Form1.spPanel2.Controls.Clear();
-            Form1.spPanel3.Controls.Clear();
+            foreach (Panel p in new Panel[] { Form1.spPanel1, Form1.spPanel2, Form1.spPanel3 })
+            {
+                if (p.InvokeRequired)
+                {
+                    // we aren't on the UI thread. Ask the UI thread to do stuff.
+                    p.Invoke(new Action(() =>
+                    {
+                        p.Controls.Clear();
+                    }));
+                }
+                else
+                {
+                    // we are on the UI thread. We are free to touch things.
+                    p.Controls.Clear();
+                }
+            }
+            // Form1.spPanel1.Controls.Clear();
+            // Form1.spPanel2.Controls.Clear();
+            // Form1.spPanel3.Controls.Clear();
             // Label vertreter, stunde, klasse, raum, fach, art, info;
             List<Substitution> newSubst = Portal.GetSubstitutionPlan(Config.portalUsername, Config.portalPassword, false);
             if (newSubst.Count != 0 || substitutions == null)
@@ -87,7 +103,7 @@ namespace HomeworkPlanner
                     l.TextAlign = ContentAlignment.MiddleCenter;
                     subs.Controls.Add(l);
                 }
-                
+
                 Panel p = Form1.spPanel1;
                 if (s.date.Equals(Portal.GetNextWeekdayAfterDays(1)))
                 {
@@ -97,7 +113,20 @@ namespace HomeworkPlanner
                 {
                     p = Form1.spPanel3;
                 }
-                p.Controls.Add(subs);
+                if (p.InvokeRequired)
+                {
+                    // we aren't on the UI thread. Ask the UI thread to do stuff.
+                    p.Invoke(new Action(() =>
+                    {
+                        p.Controls.Add(subs);
+                    }));
+                }
+                else
+                {
+                    // we are on the UI thread. We are free to touch things.
+                    p.Controls.Add(subs);
+                }
+                // p.Controls.Add(subs);
             }
         }
     }

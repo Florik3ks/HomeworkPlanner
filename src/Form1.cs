@@ -12,18 +12,18 @@ namespace HomeworkPlanner
         private static Assignment currentlyEditing;
         public Form1()
         {
+            InitializeComponent();
             Shown += OnShown;
             Config.LoadConfig();
             Timetable.GetTimetable(timetablePanel, false, false);
             Subjects.LoadSubjectColors();
-            InitializeComponent();
             InitializeComponents();
             isEditing = false;
         }
         private void OnShown(object sender, EventArgs e)
         {
-            SubstitutionPlan.ShowPlan();
-            SubstitutionPlanResize(null, null);
+            // SubstitutionPlan.ShowPlan();
+            // SubstitutionPlanResize(null, null);
             // get local timetable on startup
             Timetable.ShowPlan(timetablePanel);
             ResetValues();
@@ -34,22 +34,25 @@ namespace HomeworkPlanner
             {
                 AddAssignmentToList(Homework.AssignmentList[i], false);
             }
-            Refresh();
+            // get substitution plan 
             // update timetable from portal
             BackgroundWorker bgw = new BackgroundWorker();
-            bgw.DoWork += LoadTimetable;
-            bgw.RunWorkerCompleted += LoadTimetableCompleted;
+            bgw.DoWork += LoadPlans;
+            bgw.RunWorkerCompleted += LoadPlansCompleted;
             bgw.RunWorkerAsync();
+            Refresh();
         }
-        private void LoadTimetable(object sender, DoWorkEventArgs e)
+        private void LoadPlans(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
             Timetable.GetTimetable(timetablePanel, true);
+            SubstitutionPlan.ShowPlan();
         }
-        private void LoadTimetableCompleted(object sender, RunWorkerCompletedEventArgs e)
+        private void LoadPlansCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            // TimetableResize(null, null);
+            SubstitutionPlanResize(null, null);
             ResetValues();
+            Refresh();
         }
 
         public void SaveButtonPressed(object sender, EventArgs e)
@@ -139,15 +142,15 @@ namespace HomeworkPlanner
 
             lwi.Name = a.id;
             lwi.UseItemStyleForSubItems = false;
-            ListViewItem.ListViewSubItem sub = new();
+            ListViewItem.ListViewSubItem sub = new ListViewItem.ListViewSubItem();
             sub.BackColor = a.Done ? Color.Green : Color.Red;
             lwi.SubItems.Add(sub);
 
 
-            ListViewItem.ListViewSubItem sub1 = new();
+            ListViewItem.ListViewSubItem sub1 =  new ListViewItem.ListViewSubItem();
             sub1.Text = a.Subject;
             lwi.SubItems.Add(sub1);
-            ListViewItem.ListViewSubItem sub2 = new();
+            ListViewItem.ListViewSubItem sub2 = new ListViewItem.ListViewSubItem();
             sub2.Text = a.Message;
             lwi.SubItems.Add(sub2);
             listToAddTo.Items.Add(lwi);
